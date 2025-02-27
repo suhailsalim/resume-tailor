@@ -1,5 +1,7 @@
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import FeedbackIcon from "@mui/icons-material/Feedback"; // Feedback Icon
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import VisibilityIcon from "@mui/icons-material/Visibility"; // Preview Icon
 import {
   Alert,
   Box,
@@ -13,16 +15,29 @@ import {
   Step,
   StepLabel,
   Stepper,
+  styled,
   Switch,
   TextField,
   Typography,
 } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
+import StepConnector from "@mui/material/StepConnector"; // Stepper Connector
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import axios from "axios";
 import MarkdownPreview from "markdown-to-jsx";
 import { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
+
+// Custom Stepper connector style
+const StepperConnectorStyle = styled(StepConnector)(({ theme }) => ({
+  [`&.MuiStepConnector-vertical`]: {
+    marginLeft: 10, // Adjust as needed for icon alignment
+  },
+  [`& .MuiStepConnector-line`]: {
+    borderColor: theme.palette.primary.main, // Connector line color
+    borderTopWidth: 2, // Make connector line thicker
+  },
+}));
 
 const App = () => {
   const [jobDescription, setJobDescription] = useState("");
@@ -276,6 +291,7 @@ const App = () => {
         setResume(file);
         setResumeFileName(file.name);
         setResumeUploaded(true);
+        setStep(2); // Auto move to step 2 after file upload
       }
     },
   });
@@ -320,9 +336,9 @@ const App = () => {
               ) : (
                 <>
                   <CloudUploadIcon style={{ fontSize: 40 }} />
-                  <Typography>Upload Resume (PDF, DOC, DOCX)</Typography>
+                  <Typography>Drag & Drop Resume or Click to Upload</Typography>
                   <Typography variant="body2" color="textSecondary">
-                    or click to select files
+                    (PDF, DOC, DOCX files accepted)
                   </Typography>
                 </>
               )}
@@ -339,7 +355,7 @@ const App = () => {
                 onClick={handleNextStep}
                 disabled={!resumeUploaded}
               >
-                Next
+                Next: Job Description
               </Button>
             </Box>
           </Paper>
@@ -348,7 +364,11 @@ const App = () => {
         return (
           <Paper elevation={3} sx={{ p: 3, my: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Step 2: Enter Job Description
+              Step 2: Paste Job Description
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              To tailor your resume effectively, please paste the job
+              description below.
             </Typography>
             <TextField
               label="Job Description"
@@ -359,10 +379,10 @@ const App = () => {
               onChange={handleJobDescriptionChange}
               placeholder="Paste the job description here..."
               variant="outlined"
-              sx={{ mb: 3, mt: 2 }}
+              sx={{ mb: 3, mt: 1 }}
             />
             <Box mt={2} display="flex" justifyContent="space-between">
-              <Button onClick={handlePrevStep}>Back</Button>
+              <Button onClick={handlePrevStep}>Back to Upload</Button>
               <Button
                 variant="contained"
                 color="primary"
@@ -380,12 +400,17 @@ const App = () => {
         );
       case 3: // Step 3: Edit and Preview
         return (
-          <Paper
-            elevation={3}
-            sx={{ p: 3, my: 2, display: "flex", flexDirection: "column" }}
-          >
-            <Typography variant="h6" gutterBottom>
-              Step 3: Edit and Download
+          <Paper elevation={3} sx={{ p: 3, my: 2 }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
+              Step 3: Edit & Download <VisibilityIcon color="action" />
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              Review and edit the tailored resume. Download in your preferred
+              format.
             </Typography>
             {generatedResume ? (
               <Box
@@ -396,16 +421,14 @@ const App = () => {
                 }}
               >
                 <Grid container spacing={2}>
-                  {" "}
-                  {/* Grid Container for horizontal split */}
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={6} sx={{ pr: { md: 2 } }}>
                     {" "}
-                    {/* Edit Section (Left on md, Full width on xs) */}
+                    {/* Added padding right for visual separation on md screens */}
                     <TextField
                       label="Edit Resume (Markdown)"
                       multiline
                       fullWidth
-                      rows={10}
+                      rows={21} // Increased rows for better edit area
                       value={editedResume}
                       onChange={handleEditedResumeChange}
                       variant="outlined"
@@ -413,14 +436,12 @@ const App = () => {
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    {" "}
-                    {/* Preview Section (Right on md, Full width on xs) */}
                     <Paper
                       elevation={1}
                       sx={{
                         p: 2,
                         mb: 3,
-                        maxHeight: "400px", // Increased maxHeight for preview
+                        maxHeight: "515px", // Increased maxHeight for preview
                         overflow: "auto",
                         bgcolor: darkMode
                           ? "rgba(255, 255, 255, 0.05)"
@@ -434,39 +455,66 @@ const App = () => {
                   </Grid>
                 </Grid>
 
-                <Box display="flex" gap={1} mb={3} mt={2}>
+                <Box
+                  display="flex"
+                  gap={2}
+                  mt={2}
+                  flexDirection={{ xs: "column", sm: "row" }}
+                  alignItems="flex-start"
+                >
                   {" "}
-                  {/* Download Buttons - Moved down */}
-                  <Button
-                    variant="outlined"
-                    startIcon={<FileDownloadIcon />}
-                    onClick={() => downloadResume("pdf")}
-                    size="small"
-                  >
-                    PDF
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<FileDownloadIcon />}
-                    onClick={() => downloadResume("doc")}
-                    size="small"
-                  >
-                    DOC
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<FileDownloadIcon />}
-                    onClick={() => downloadResume("markdown")}
-                    size="small"
-                  >
-                    Markdown
-                  </Button>
+                  {/* Download buttons - full width on xs */}
+                  <Typography variant="subtitle2" sx={{ mt: 1 }}>
+                    Download As:
+                  </Typography>
+                  <Box display="flex" gap={1}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<FileDownloadIcon />}
+                      onClick={() => downloadResume("pdf")}
+                      size="small"
+                    >
+                      PDF
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<FileDownloadIcon />}
+                      onClick={() => downloadResume("doc")}
+                      size="small"
+                    >
+                      DOC
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<FileDownloadIcon />}
+                      onClick={() => downloadResume("markdown")}
+                      size="small"
+                    >
+                      Markdown
+                    </Button>
+                  </Box>
                 </Box>
+
                 {showFeedbackSection && (
-                  <Box mt={2}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Refine Resume (Optional): Provide feedback for
-                      improvements:
+                  <Box
+                    mt={3}
+                    sx={{ borderTop: "1px solid rgba(0, 0, 0, 0.1)", pt: 2 }}
+                  >
+                    {" "}
+                    {/* Separator for feedback */}
+                    <Typography
+                      variant="subtitle1"
+                      gutterBottom
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <FeedbackIcon color="action" /> Refine Resume (Optional)
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      gutterBottom
+                    >
+                      Provide feedback to further improve the tailored resume.
                     </Typography>
                     <TextField
                       multiline
@@ -476,7 +524,7 @@ const App = () => {
                       onChange={handleFeedbackChange}
                       placeholder="Suggest improvements or changes..."
                       variant="outlined"
-                      sx={{ mb: 2 }}
+                      sx={{ mb: 2, mt: 1 }}
                     />
                     <Button
                       variant="contained"
@@ -498,26 +546,28 @@ const App = () => {
                 display="flex"
                 justifyContent="center"
                 alignItems="center"
-                height="200px"
+                height="300px" // Increased height for placeholder in step 3
                 sx={{
                   bgcolor: darkMode
                     ? "rgba(255, 255, 255, 0.05)"
                     : "rgba(0, 0, 0, 0.02)",
                   borderRadius: 1,
                   flexGrow: 1,
+                  p: 3, // Added padding to placeholder box
+                  textAlign: "center", // Center text in placeholder
                 }}
               >
-                <Typography color="textSecondary">
+                <Typography color="textSecondary" variant="h6">
                   {isLoading ? (
-                    <CircularProgress size={40} />
+                    <CircularProgress size={50} />
                   ) : (
-                    "Your tailored resume will appear here"
+                    "Your tailored resume preview will appear here after generation."
                   )}
                 </Typography>
               </Box>
             )}
-            <Box mt={2} display="flex" justifyContent="flex-start">
-              <Button onClick={handlePrevStep}>Back</Button>
+            <Box mt={3} display="flex" justifyContent="flex-start">
+              <Button onClick={handlePrevStep}>Back to Job Description</Button>
             </Box>
           </Paper>
         );
@@ -529,16 +579,22 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="md">
+      <Container maxWidth="lg">
+        {" "}
         <Box sx={{ my: 4 }}>
           <Box
             display="flex"
             justifyContent="space-between"
             alignItems="center"
-            mb={2}
+            mb={3} // Increased mb for better spacing below heading
           >
-            <Typography variant="h4" component="h1" gutterBottom>
-              Resume Tailor AI
+            <Typography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              sx={{ fontWeight: 500 }}
+            >
+              ResumeFy AI{" "}
             </Typography>
             <FormControlLabel
               control={<Switch checked={darkMode} onChange={toggleDarkMode} />}
@@ -546,9 +602,14 @@ const App = () => {
             />
           </Box>
 
-          <Stepper activeStep={step - 1} alternativeLabel sx={{ mb: 3 }}>
+          <Stepper
+            activeStep={step - 1}
+            alternativeLabel
+            sx={{ mb: 4 }} // Increased mb for stepper spacing
+            connector={<StepperConnectorStyle />} // Apply custom connector style
+          >
             {steps.map((label, index) => (
-              <Step key={label}>
+              <Step key={label} completed={index < step - 1}>
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
