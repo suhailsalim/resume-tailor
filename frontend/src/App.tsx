@@ -9,6 +9,9 @@ import {
   FormControlLabel,
   Paper,
   Snackbar,
+  Step,
+  StepLabel,
+  Stepper,
   Switch,
   TextField,
   Typography,
@@ -37,7 +40,12 @@ const App = () => {
     message: "",
     severity: "info",
   });
-  const [step, setStep] = useState(1); // 1: Upload, 2: JD, 3: Edit/Preview
+  const [step, setStep] = useState(() => {
+    const storedStep = localStorage.getItem("currentStep");
+    return storedStep ? parseInt(storedStep, 10) : 1;
+  });
+
+  const steps = ["Upload Resume", "Job Description", "Edit & Download"];
 
   // Initialize editedResume with generatedResume when it changes
   useEffect(() => {
@@ -63,6 +71,11 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem("darkMode", darkMode.toString());
   }, [darkMode]);
+
+  // Persist step to local storage
+  useEffect(() => {
+    localStorage.setItem("currentStep", step.toString());
+  }, [step]);
 
   const handleFileChange = (event: any) => {
     const file = event.target.files[0];
@@ -334,12 +347,21 @@ const App = () => {
         );
       case 3: // Step 3: Edit and Preview
         return (
-          <Paper elevation={3} sx={{ p: 3, my: 2, display: 'flex', flexDirection: 'column' }}>
+          <Paper
+            elevation={3}
+            sx={{ p: 3, my: 2, display: "flex", flexDirection: "column" }}
+          >
             <Typography variant="h6" gutterBottom>
               Step 3: Edit and Download
             </Typography>
             {generatedResume ? (
-              <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
                 <TextField
                   label="Edit Resume (Markdown)"
                   multiline
@@ -393,10 +415,11 @@ const App = () => {
                     Markdown
                   </Button>
                 </Box>
-                 {showFeedbackSection && (
+                {showFeedbackSection && (
                   <Box mt={2}>
                     <Typography variant="subtitle1" gutterBottom>
-                      Refine Resume (Optional): Provide feedback for improvements:
+                      Refine Resume (Optional): Provide feedback for
+                      improvements:
                     </Typography>
                     <TextField
                       multiline
@@ -423,7 +446,6 @@ const App = () => {
                   </Box>
                 )}
               </Box>
-
             ) : (
               <Box
                 display="flex"
@@ -457,13 +479,13 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="md"> {/* Reduced maxWidth for better step layout */}
+      <Container maxWidth="md">
         <Box sx={{ my: 4 }}>
           <Box
             display="flex"
             justifyContent="space-between"
             alignItems="center"
-            mb={4}
+            mb={2} // Reduced mb for stepper spacing
           >
             <Typography variant="h4" component="h1" gutterBottom>
               Resume Tailor AI
@@ -474,8 +496,15 @@ const App = () => {
             />
           </Box>
 
-          {renderStepContent()}
+          <Stepper activeStep={step - 1} alternativeLabel sx={{ mb: 3 }}>
+            {steps.map((label, index) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
 
+          {renderStepContent()}
         </Box>
       </Container>
 
