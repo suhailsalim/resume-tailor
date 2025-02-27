@@ -1,18 +1,18 @@
-import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
-import { marked } from "marked";
-import puppeteer from "puppeteer";
-import config from "../config/config"; // Import config
+import { DocxLoader } from '@langchain/community/document_loaders/fs/docx';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { RunnableSequence } from '@langchain/core/runnables';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import fs from 'fs/promises';
+import { marked } from 'marked';
+import os from 'os';
+import path from 'path';
+import puppeteer from 'puppeteer';
+import config from '../config/config'; // Import config
 
 const llm = new ChatGoogleGenerativeAI({
-  modelName: "gemini-2.0-flash",
+  modelName: 'gemini-2.0-flash',
   apiKey: config.googleGenAiApiKey, // Use API key from config
 });
 
@@ -38,7 +38,7 @@ const generateResumeTemplate = new PromptTemplate({
   Focus on honesty while positioning the candidate's actual experience to best match the job requirements.
 
   # Tailored Resume (in Markdown format):`,
-  inputVariables: ["resume", "jobDescription"],
+  inputVariables: ['resume', 'jobDescription'],
 });
 
 // Refine resume based on feedback
@@ -58,78 +58,79 @@ const refineResumeTemplate = new PromptTemplate({
   4. Keeping the resume well-organized and formatted in Markdown
 
   # Refined Resume (in Markdown format):`,
-  inputVariables: ["resume", "feedback"],
+  inputVariables: ['resume', 'feedback'],
 });
 
-const resumeGenerator = RunnableSequence.from([
-  generateResumeTemplate,
-  llm,
-  new StringOutputParser(),
-]);
+const resumeGenerator = RunnableSequence.from([generateResumeTemplate, llm, new StringOutputParser()]);
 
-const resumeRefiner = RunnableSequence.from([
-  refineResumeTemplate,
-  llm,
-  new StringOutputParser(),
-]);
+const resumeRefiner = RunnableSequence.from([refineResumeTemplate, llm, new StringOutputParser()]);
 
-
-async function parseResumeFile(
-  fileBuffer: Buffer,
-  filename: string
-): Promise<string> {
+async function parseResumeFile(fileBuffer: Buffer, filename: string): Promise<string> {
   try {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "resume-"));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'resume-'));
     const tempFilePath = path.join(tempDir, filename);
 
     await fs.writeFile(tempFilePath, fileBuffer);
 
     let docs: any[] = [];
-    if (filename.endsWith(".pdf")) {
+    if (filename.endsWith('.pdf')) {
       const loader = new PDFLoader(tempFilePath);
       docs = await loader.load();
-    } else if (filename.endsWith(".docx") || filename.endsWith(".doc")) {
+    } else if (filename.endsWith('.docx') || filename.endsWith('.doc')) {
       const loader = new DocxLoader(tempFilePath);
       docs = await loader.load();
     }
 
     // Clean up temp files
-    await Promise.all([
-      fs.unlink(tempFilePath),
-      fs.rmdir(tempDir),
-    ]);
-
+    await Promise.all([fs.unlink(tempFilePath), fs.rmdir(tempDir)]);
 
     // Combine all documents into one text
-    const fullText = docs.map((doc) => doc.pageContent).join("\n\n");
+    const fullText = docs.map((doc) => doc.pageContent).join('\n\n');
     return fullText;
   } catch (error) {
-    console.error("Error parsing resume file:", error);
-    throw new Error("Failed to parse resume file");
+    console.error('Error parsing resume file:', error);
+    throw new Error('Failed to parse resume file');
   }
 }
 
-
 async function generateTailoredResume(resumeText: string, jobDescription: string): Promise<string> {
   try {
-    return await resumeGenerator.invoke({ resume: resumeText, jobDescription });
+    let result = await resumeGenerator.invoke({ resume: resumeText, jobDescription });
+
+    // The result might actually contain ```markdown ... ``` around the markdown text
+    // So we need to extract the markdown text from the result
+    const markdownMatch = result.match(/```markdown\n([\s\S]+)\n```/);
+    if (markdownMatch) {
+      result = markdownMatch[1];
+    }
+
+    return result;
   } catch (error) {
-    console.error("Error in generateTailoredResume service:", error);
-    throw new Error("Failed to generate tailored resume");
+    console.error('Error in generateTailoredResume service:', error);
+    throw new Error('Failed to generate tailored resume');
   }
 }
 
 async function refineTailoredResume(originalResume: string, feedback: string): Promise<string> {
   try {
-    return await resumeRefiner.invoke({ resume: originalResume, feedback });
+    let result = await resumeRefiner.invoke({ resume: originalResume, feedback });
+
+    // The result might actually contain ```markdown ... ``` around the markdown text
+    // So we need to extract the markdown text from the result
+    const markdownMatch = result.match(/```markdown\n([\s\S]+)\n```/);
+    if (markdownMatch) {
+      result = markdownMatch[1];
+    }
+
+    return result;
   } catch (error) {
-    console.error("Error in refineTailoredResume service:", error);
-    throw new Error("Failed to refine tailored resume");
+    console.error('Error in refineTailoredResume service:', error);
+    throw new Error('Failed to refine tailored resume');
   }
 }
 
 async function generateResumeDownload(markdown: string, format: string): Promise<Buffer | string> {
-  if (format === "markdown") {
+  if (format === 'markdown') {
     return markdown; // Return markdown text directly
   }
 
@@ -178,17 +179,17 @@ async function generateResumeDownload(markdown: string, format: string): Promise
 
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
+  await page.setContent(html, { waitUntil: 'networkidle0' });
 
-  if (format === "pdf") {
+  if (format === 'pdf') {
     const pdfBuffer = await page.pdf({
-      format: "A4",
-      margin: { top: "40px", right: "40px", bottom: "40px", left: "40px" },
+      format: 'A4',
+      margin: { top: '40px', right: '40px', bottom: '40px', left: '40px' },
       printBackground: true,
     });
     await browser.close();
     return Buffer.from(pdfBuffer);
-  } else if (format === "doc") {
+  } else if (format === 'doc') {
     const docHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office"
         xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -226,10 +227,9 @@ async function generateResumeDownload(markdown: string, format: string): Promise
     await browser.close();
     return Buffer.from(docHtml);
   } else {
-    throw new Error("Invalid format specified");
+    throw new Error('Invalid format specified');
   }
 }
-
 
 export default {
   parseResumeFile,
