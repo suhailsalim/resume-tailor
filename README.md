@@ -10,6 +10,29 @@ An AI-powered application that tailors resumes to match job descriptions.
 - Download in multiple formats (PDF, DOC, Markdown)
 - Dark/Light mode toggle
 
+## Architecture
+
+```
++-------------------+       +-----------------------+       +-------------------+
+|     Frontend      | ----> |      Backend (API)    | ----> |  OpenAI (GPT-4o)  |
+| (React/Typescript)|       |  (NodeJS/Typescript)  |       |                   |
++-------------------+       +-----------------------+       +-------------------+
+      ^                     |                       |
+      |                     |                       |
+      |                     | Document Parsing      |
+      |                     | (PDF, DOCX)           |
+      |                     |                       |
+      |                     | Markdown Generation   |
+      |                     |                       |
+      |                     | File Generation       |
+      |                     | (PDF, DOC)            |
+      +---------------------+-----------------------+
+                            |Database (Optional)
+                            |(SQLite, PostgreSQL
+                            | , MongoDB)
+                            +-----------------------+
+```
+
 ## Tech Stack
 - Frontend: React, Material-UI
 - Backend: Node.js, Express, TypeScript

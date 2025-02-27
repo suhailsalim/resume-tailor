@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { StringOutputParser } from "@langchain/core/output_parsers"
@@ -48,7 +51,7 @@ const upload = multer({
 
 const llm = new ChatGoogleGenerativeAI({
   modelName: "gemini-2.0-flash",
-  maxOutputTokens: 2048,
+  apiKey: process.env.GOOGLE_API_KEY,
 });
 
 // Memory for conversation history
