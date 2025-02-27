@@ -7,6 +7,7 @@ import {
   CircularProgress,
   Container,
   FormControlLabel,
+  Grid,
   Paper,
   Snackbar,
   Step,
@@ -44,8 +45,8 @@ const App = () => {
     const storedStep = localStorage.getItem("currentStep");
     return storedStep ? parseInt(storedStep, 10) : 1;
   });
-  const [resumeUploaded, setResumeUploaded] = useState(() => { // Track resume upload status
-    return localStorage.getItem("resumeUploaded") === 'true';
+  const [resumeUploaded, setResumeUploaded] = useState(() => {
+    return localStorage.getItem("resumeUploaded") === "true";
   });
 
   const steps = ["Upload Resume", "Job Description", "Edit & Download"];
@@ -85,13 +86,12 @@ const App = () => {
     localStorage.setItem("resumeUploaded", resumeUploaded.toString());
   }, [resumeUploaded]);
 
-
   const handleFileChange = (event: any) => {
     const file = event.target.files[0];
     if (file) {
       setResume(file);
       setResumeFileName(file.name);
-      setResumeUploaded(true); // Mark resume as uploaded
+      setResumeUploaded(true);
     }
   };
 
@@ -134,7 +134,7 @@ const App = () => {
       });
       setGeneratedResume(response.data.resume);
       setShowFeedbackSection(true);
-      setStep(3); // Move to edit/preview step after generation
+      setStep(3);
       setNotification({
         open: true,
         message: "Resume generated successfully!",
@@ -263,7 +263,6 @@ const App = () => {
     setNotification({ ...notification, open: false });
   };
 
-  // Drag and drop functionality
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
       "application/pdf": [".pdf"],
@@ -276,23 +275,26 @@ const App = () => {
       if (file) {
         setResume(file);
         setResumeFileName(file.name);
-        setResumeUploaded(true); // Mark resume as uploaded
+        setResumeUploaded(true);
       }
     },
   });
 
   const handleNextStep = () => {
     if (step === 1 && !resumeUploaded) {
-      setNotification({ open: true, message: "Please upload a resume first.", severity: "warning" });
+      setNotification({
+        open: true,
+        message: "Please upload a resume first.",
+        severity: "warning",
+      });
       return;
     }
-    setStep((prevStep) => Math.min(prevStep + 1, 3)); // Prevent going beyond step 3
+    setStep((prevStep) => Math.min(prevStep + 1, 3));
   };
 
   const handlePrevStep = () => {
-    setStep((prevStep) => Math.max(prevStep - 1, 1)); // Prevent going below step 1
+    setStep((prevStep) => Math.max(prevStep - 1, 1));
   };
-
 
   const renderStepContent = () => {
     switch (step) {
@@ -393,34 +395,48 @@ const App = () => {
                   flexDirection: "column",
                 }}
               >
-                <TextField
-                  label="Edit Resume (Markdown)"
-                  multiline
-                  fullWidth
-                  rows={10} // Adjust rows as needed
-                  value={editedResume}
-                  onChange={handleEditedResumeChange}
-                  variant="outlined"
-                  sx={{ mb: 2 }}
-                />
-                <Paper
-                  elevation={1}
-                  sx={{
-                    p: 2,
-                    mb: 3,
-                    maxHeight: "300px", // Adjust max height as needed
-                    overflow: "auto",
-                    bgcolor: darkMode
-                      ? "rgba(255, 255, 255, 0.05)"
-                      : "rgba(0, 0, 0, 0.02)",
-                    wordWrap: "break-word",
-                    overflowWrap: "break-word",
-                  }}
-                >
-                  <MarkdownPreview>{editedResume}</MarkdownPreview>
-                </Paper>
+                <Grid container spacing={2}>
+                  {" "}
+                  {/* Grid Container for horizontal split */}
+                  <Grid item xs={12} md={6}>
+                    {" "}
+                    {/* Edit Section (Left on md, Full width on xs) */}
+                    <TextField
+                      label="Edit Resume (Markdown)"
+                      multiline
+                      fullWidth
+                      rows={10}
+                      value={editedResume}
+                      onChange={handleEditedResumeChange}
+                      variant="outlined"
+                      sx={{ mb: 2 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    {" "}
+                    {/* Preview Section (Right on md, Full width on xs) */}
+                    <Paper
+                      elevation={1}
+                      sx={{
+                        p: 2,
+                        mb: 3,
+                        maxHeight: "400px", // Increased maxHeight for preview
+                        overflow: "auto",
+                        bgcolor: darkMode
+                          ? "rgba(255, 255, 255, 0.05)"
+                          : "rgba(0, 0, 0, 0.02)",
+                        wordWrap: "break-word",
+                        overflowWrap: "break-word",
+                      }}
+                    >
+                      <MarkdownPreview>{editedResume}</MarkdownPreview>
+                    </Paper>
+                  </Grid>
+                </Grid>
 
-                <Box display="flex" gap={1} mb={3} mt="auto">
+                <Box display="flex" gap={1} mb={3} mt={2}>
+                  {" "}
+                  {/* Download Buttons - Moved down */}
                   <Button
                     variant="outlined"
                     startIcon={<FileDownloadIcon />}
@@ -500,7 +516,7 @@ const App = () => {
                 </Typography>
               </Box>
             )}
-             <Box mt={2} display="flex" justifyContent="flex-start">
+            <Box mt={2} display="flex" justifyContent="flex-start">
               <Button onClick={handlePrevStep}>Back</Button>
             </Box>
           </Paper>
