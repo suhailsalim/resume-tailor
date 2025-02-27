@@ -44,6 +44,9 @@ const App = () => {
     const storedStep = localStorage.getItem("currentStep");
     return storedStep ? parseInt(storedStep, 10) : 1;
   });
+  const [resumeUploaded, setResumeUploaded] = useState(() => { // Track resume upload status
+    return localStorage.getItem("resumeUploaded") === 'true';
+  });
 
   const steps = ["Upload Resume", "Job Description", "Edit & Download"];
 
@@ -77,14 +80,18 @@ const App = () => {
     localStorage.setItem("currentStep", step.toString());
   }, [step]);
 
+  // Persist resumeUploaded status
+  useEffect(() => {
+    localStorage.setItem("resumeUploaded", resumeUploaded.toString());
+  }, [resumeUploaded]);
+
+
   const handleFileChange = (event: any) => {
     const file = event.target.files[0];
     if (file) {
       setResume(file);
       setResumeFileName(file.name);
-      if (step === 1) {
-        setStep(2); // Auto move to next step after file upload
-      }
+      setResumeUploaded(true); // Mark resume as uploaded
     }
   };
 
@@ -269,10 +276,23 @@ const App = () => {
       if (file) {
         setResume(file);
         setResumeFileName(file.name);
-        setStep(2); // Auto move to next step after drag and drop
+        setResumeUploaded(true); // Mark resume as uploaded
       }
     },
   });
+
+  const handleNextStep = () => {
+    if (step === 1 && !resumeUploaded) {
+      setNotification({ open: true, message: "Please upload a resume first.", severity: "warning" });
+      return;
+    }
+    setStep((prevStep) => Math.min(prevStep + 1, 3)); // Prevent going beyond step 3
+  };
+
+  const handlePrevStep = () => {
+    setStep((prevStep) => Math.max(prevStep - 1, 1)); // Prevent going below step 1
+  };
+
 
   const renderStepContent = () => {
     switch (step) {
@@ -310,6 +330,16 @@ const App = () => {
                 Selected: {resumeFileName}
               </Typography>
             )}
+            <Box mt={2} display="flex" justifyContent="flex-end">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleNextStep}
+                disabled={!resumeUploaded}
+              >
+                Next
+              </Button>
+            </Box>
           </Paper>
         );
       case 2: // Step 2: Job Description
@@ -329,20 +359,21 @@ const App = () => {
               variant="outlined"
               sx={{ mb: 3, mt: 2 }}
             />
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={submitResume}
-              disabled={isLoading || !resume || !jobDescription.trim()}
-              fullWidth
-              sx={{ p: 1.5 }}
-            >
-              {isLoading ? (
-                <CircularProgress size={24} />
-              ) : (
-                "Generate Tailored Resume"
-              )}
-            </Button>
+            <Box mt={2} display="flex" justifyContent="space-between">
+              <Button onClick={handlePrevStep}>Back</Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={submitResume}
+                disabled={isLoading || !resume || !jobDescription.trim()}
+              >
+                {isLoading ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  "Generate Tailored Resume"
+                )}
+              </Button>
+            </Box>
           </Paper>
         );
       case 3: // Step 3: Edit and Preview
@@ -469,6 +500,9 @@ const App = () => {
                 </Typography>
               </Box>
             )}
+             <Box mt={2} display="flex" justifyContent="flex-start">
+              <Button onClick={handlePrevStep}>Back</Button>
+            </Box>
           </Paper>
         );
       default:
@@ -485,7 +519,7 @@ const App = () => {
             display="flex"
             justifyContent="space-between"
             alignItems="center"
-            mb={2} // Reduced mb for stepper spacing
+            mb={2}
           >
             <Typography variant="h4" component="h1" gutterBottom>
               Resume Tailor AI
