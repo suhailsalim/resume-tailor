@@ -7,7 +7,6 @@ import {
   CircularProgress,
   Container,
   FormControlLabel,
-  Grid,
   Paper,
   Snackbar,
   Switch,
@@ -27,7 +26,7 @@ const App = () => {
   const [resumeFileName, setResumeFileName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [generatedResume, setGeneratedResume] = useState("");
-  const [editedResume, setEditedResume] = useState(""); // For editable resume
+  const [editedResume, setEditedResume] = useState("");
   const [feedback, setFeedback] = useState("");
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("darkMode") === "true" || false
@@ -38,6 +37,7 @@ const App = () => {
     message: "",
     severity: "info",
   });
+  const [step, setStep] = useState(1); // 1: Upload, 2: JD, 3: Edit/Preview
 
   // Initialize editedResume with generatedResume when it changes
   useEffect(() => {
@@ -69,6 +69,9 @@ const App = () => {
     if (file) {
       setResume(file);
       setResumeFileName(file.name);
+      if (step === 1) {
+        setStep(2); // Auto move to next step after file upload
+      }
     }
   };
 
@@ -111,6 +114,7 @@ const App = () => {
       });
       setGeneratedResume(response.data.resume);
       setShowFeedbackSection(true);
+      setStep(3); // Move to edit/preview step after generation
       setNotification({
         open: true,
         message: "Resume generated successfully!",
@@ -149,10 +153,10 @@ const App = () => {
     setIsLoading(true);
     try {
       const response = await axios.post("/api/refine-resume", {
-        originalResume: editedResume, // Use editedResume as original for feedback
+        originalResume: editedResume,
         feedback,
       });
-      setGeneratedResume(response.data.resume); // Update generated resume with refined output
+      setGeneratedResume(response.data.resume);
       setFeedback("");
       setNotification({
         open: true,
@@ -184,7 +188,7 @@ const App = () => {
       const response = await axios.post(
         "/api/download-resume",
         {
-          markdown: editedResume, // Download edited resume content
+          markdown: editedResume,
           format,
         },
         {
@@ -252,216 +256,151 @@ const App = () => {
       if (file) {
         setResume(file);
         setResumeFileName(file.name);
+        setStep(2); // Auto move to next step after drag and drop
       }
     },
   });
 
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Container maxWidth="lg">
-        <Box sx={{ my: 4 }}>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={4}
-          >
-            <Typography variant="h4" component="h1" gutterBottom>
-              Resume Tailor AI
+  const renderStepContent = () => {
+    switch (step) {
+      case 1: // Step 1: Upload Resume
+        return (
+          <Paper elevation={3} sx={{ p: 3, my: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Step 1: Upload Your Resume
             </Typography>
-            <FormControlLabel
-              control={<Switch checked={darkMode} onChange={toggleDarkMode} />}
-              label={darkMode ? "Dark Mode" : "Light Mode"}
+            <Box
+              mb={3}
+              {...getRootProps()}
+              sx={{
+                p: 2,
+                border: "1px dashed gray",
+                textAlign: "center",
+                cursor: "pointer",
+              }}
+            >
+              <input {...getInputProps()} />
+              {isDragActive ? (
+                <Typography>Drop files here...</Typography>
+              ) : (
+                <>
+                  <CloudUploadIcon style={{ fontSize: 40 }} />
+                  <Typography>Upload Resume (PDF, DOC, DOCX)</Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    or click to select files
+                  </Typography>
+                </>
+              )}
+            </Box>
+            {resumeFileName && (
+              <Typography variant="body2" color="textSecondary" mt={1}>
+                Selected: {resumeFileName}
+              </Typography>
+            )}
+          </Paper>
+        );
+      case 2: // Step 2: Job Description
+        return (
+          <Paper elevation={3} sx={{ p: 3, my: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Step 2: Enter Job Description
+            </Typography>
+            <TextField
+              label="Job Description"
+              multiline
+              rows={10}
+              fullWidth
+              value={jobDescription}
+              onChange={handleJobDescriptionChange}
+              placeholder="Paste the job description here..."
+              variant="outlined"
+              sx={{ mb: 3, mt: 2 }}
             />
-          </Box>
-
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              {/* Input Section */}
-              <Paper
-                elevation={3}
-                sx={{
-                  p: 3,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <Typography variant="h6" gutterBottom>
-                  Inputs
-                </Typography>
-
-                <Box
-                  mb={3}
-                  {...getRootProps()}
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={submitResume}
+              disabled={isLoading || !resume || !jobDescription.trim()}
+              fullWidth
+              sx={{ p: 1.5 }}
+            >
+              {isLoading ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Generate Tailored Resume"
+              )}
+            </Button>
+          </Paper>
+        );
+      case 3: // Step 3: Edit and Preview
+        return (
+          <Paper elevation={3} sx={{ p: 3, my: 2, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>
+              Step 3: Edit and Download
+            </Typography>
+            {generatedResume ? (
+              <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <TextField
+                  label="Edit Resume (Markdown)"
+                  multiline
+                  fullWidth
+                  rows={10} // Adjust rows as needed
+                  value={editedResume}
+                  onChange={handleEditedResumeChange}
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                />
+                <Paper
+                  elevation={1}
                   sx={{
                     p: 2,
-                    border: "1px dashed gray",
-                    textAlign: "center",
-                    cursor: "pointer",
+                    mb: 3,
+                    maxHeight: "300px", // Adjust max height as needed
+                    overflow: "auto",
+                    bgcolor: darkMode
+                      ? "rgba(255, 255, 255, 0.05)"
+                      : "rgba(0, 0, 0, 0.02)",
+                    wordWrap: "break-word",
+                    overflowWrap: "break-word",
                   }}
                 >
-                  <input {...getInputProps()} />
-                  {isDragActive ? (
-                    <Typography>Drop files here...</Typography>
-                  ) : (
-                    <>
-                      <CloudUploadIcon style={{ fontSize: 40 }} />
-                      <Typography>Upload Resume (PDF, DOC, DOCX)</Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        or click to select files
-                      </Typography>
-                    </>
-                  )}
+                  <MarkdownPreview>{editedResume}</MarkdownPreview>
+                </Paper>
+
+                <Box display="flex" gap={1} mb={3} mt="auto">
+                  <Button
+                    variant="outlined"
+                    startIcon={<FileDownloadIcon />}
+                    onClick={() => downloadResume("pdf")}
+                    size="small"
+                  >
+                    PDF
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<FileDownloadIcon />}
+                    onClick={() => downloadResume("doc")}
+                    size="small"
+                  >
+                    DOC
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<FileDownloadIcon />}
+                    onClick={() => downloadResume("markdown")}
+                    size="small"
+                  >
+                    Markdown
+                  </Button>
                 </Box>
-                {resumeFileName && (
-                  <Typography variant="body2" color="textSecondary" mt={1}>
-                    Selected: {resumeFileName}
-                  </Typography>
-                )}
-
-                <TextField
-                  label="Job Description"
-                  multiline
-                  rows={10}
-                  fullWidth
-                  value={jobDescription}
-                  onChange={handleJobDescriptionChange}
-                  placeholder="Paste the job description here..."
-                  variant="outlined"
-                  sx={{ mb: 3, mt: 2 }}
-                />
-
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={submitResume}
-                  disabled={isLoading || !resume || !jobDescription.trim()}
-                  fullWidth
-                  sx={{ p: 1.5, mt: "auto" }} // mt: 'auto' to push button to bottom
-                >
-                  {isLoading ? (
-                    <CircularProgress size={24} />
-                  ) : (
-                    "Generate Tailored Resume"
-                  )}
-                </Button>
-              </Paper>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              {/* Output Section */}
-              <Paper
-                elevation={3}
-                sx={{
-                  p: 3,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <Typography variant="h6" gutterBottom>
-                  Tailored Resume
-                </Typography>
-
-                {generatedResume ? (
-                  <Box
-                    sx={{
-                      flexGrow: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
-                  >
-                    <TextField
-                      label="Edit Resume (Markdown)"
-                      multiline
-                      fullWidth
-                      rows={15} // Adjust rows as needed
-                      value={editedResume}
-                      onChange={handleEditedResumeChange}
-                      variant="outlined"
-                      sx={{ mb: 2 }}
-                    />
-                    <Paper
-                      elevation={1}
-                      sx={{
-                        p: 2,
-                        mb: 3,
-                        maxHeight: "400px", // Adjust max height as needed
-                        overflow: "auto",
-                        bgcolor: darkMode
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.02)",
-                        wordWrap: "break-word", // Added wordWrap for long lines
-                        overflowWrap: "break-word", // Added overflowWrap for long lines
-                      }}
-                    >
-                      <MarkdownPreview>{editedResume}</MarkdownPreview>
-                    </Paper>
-
-                    <Box display="flex" gap={1} mb={3} mt="auto">
-                      {" "}
-                      {/* mt="auto" to push buttons to bottom */}
-                      <Button
-                        variant="outlined"
-                        startIcon={<FileDownloadIcon />}
-                        onClick={() => downloadResume("pdf")}
-                        size="small"
-                      >
-                        PDF
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<FileDownloadIcon />}
-                        onClick={() => downloadResume("doc")}
-                        size="small"
-                      >
-                        DOC
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<FileDownloadIcon />}
-                        onClick={() => downloadResume("markdown")}
-                        size="small"
-                      >
-                        Markdown
-                      </Button>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box
-                    display="flex"
-                    justifyContent="center"
-                    alignItems="center"
-                    height="200px"
-                    sx={{
-                      bgcolor: darkMode
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "rgba(0, 0, 0, 0.02)",
-                      borderRadius: 1,
-                      flexGrow: 1, // Ensure placeholder box takes up available space
-                    }}
-                  >
-                    <Typography color="textSecondary">
-                      {isLoading ? (
-                        <CircularProgress size={40} />
-                      ) : (
-                        "Your tailored resume will appear here"
-                      )}
-                    </Typography>
-                  </Box>
-                )}
-
-                {showFeedbackSection && (
-                  <Box mt={3}>
+                 {showFeedbackSection && (
+                  <Box mt={2}>
                     <Typography variant="subtitle1" gutterBottom>
-                      Refine Resume (Optional): Provide feedback for
-                      improvements:
+                      Refine Resume (Optional): Provide feedback for improvements:
                     </Typography>
                     <TextField
                       multiline
-                      rows={4}
+                      rows={3}
                       fullWidth
                       value={feedback}
                       onChange={handleFeedbackChange}
@@ -483,9 +422,60 @@ const App = () => {
                     </Button>
                   </Box>
                 )}
-              </Paper>
-            </Grid>
-          </Grid>
+              </Box>
+
+            ) : (
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                height="200px"
+                sx={{
+                  bgcolor: darkMode
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
+                  borderRadius: 1,
+                  flexGrow: 1,
+                }}
+              >
+                <Typography color="textSecondary">
+                  {isLoading ? (
+                    <CircularProgress size={40} />
+                  ) : (
+                    "Your tailored resume will appear here"
+                  )}
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Container maxWidth="md"> {/* Reduced maxWidth for better step layout */}
+        <Box sx={{ my: 4 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={4}
+          >
+            <Typography variant="h4" component="h1" gutterBottom>
+              Resume Tailor AI
+            </Typography>
+            <FormControlLabel
+              control={<Switch checked={darkMode} onChange={toggleDarkMode} />}
+              label={darkMode ? "Dark Mode" : "Light Mode"}
+            />
+          </Box>
+
+          {renderStepContent()}
+
         </Box>
       </Container>
 
