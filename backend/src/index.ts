@@ -187,7 +187,8 @@ app.post("/api/refine-resume", async (req, res) => {
     const { originalResume, feedback } = req.body;
 
     if (!originalResume || !feedback) {
-      return res.status(400).json({ error: "Missing resume or feedback" });
+      res.status(400).json({ error: "Missing resume or feedback" });
+      return;
     }
 
     const refinedResume = await resumeRefiner.invoke({
@@ -195,10 +196,12 @@ app.post("/api/refine-resume", async (req, res) => {
       feedback: feedback,
     });
 
-    return res.json({ resume: refinedResume });
+    res.json({ resume: refinedResume });
+    return;
   } catch (error) {
     console.error("Error refining resume:", error);
-    return res.status(500).json({ error: "Failed to refine resume" });
+    res.status(500).json({ error: "Failed to refine resume" });
+    return;
   }
 });
 
@@ -212,9 +215,8 @@ app.post("/api/download-resume", async (req, res) => {
     const { markdown, format } = req.body;
 
     if (!markdown || !format) {
-      return res
-        .status(400)
-        .json({ error: "Missing markdown content or format" });
+      res.status(400).json({ error: "Missing markdown content or format" });
+      return;
     }
 
     // For markdown format, just return the markdown text
@@ -224,7 +226,8 @@ app.post("/api/download-resume", async (req, res) => {
         "Content-Disposition",
         "attachment; filename=tailored-resume.md"
       );
-      return res.send(markdown);
+      res.send(markdown);
+      return;
     }
 
     // For PDF or DOC format, convert markdown to HTML first
@@ -289,7 +292,8 @@ app.post("/api/download-resume", async (req, res) => {
         "Content-Disposition",
         "attachment; filename=tailored-resume.pdf"
       );
-      return res.send(pdfBuffer);
+      res.send(pdfBuffer);
+      return;
     } else if (format === "doc") {
       // For DOC format, we'll use HTML with MS Word compatibility
       const docHtml = `
@@ -334,13 +338,16 @@ app.post("/api/download-resume", async (req, res) => {
         "Content-Disposition",
         "attachment; filename=tailored-resume.doc"
       );
-      return res.send(Buffer.from(docHtml));
+      res.send(Buffer.from(docHtml));
+      return;
     }
 
-    return res.status(400).json({ error: "Invalid format specified" });
+    res.status(400).json({ error: "Invalid format specified" });
+    return;
   } catch (error) {
     console.error("Error downloading resume:", error);
-    return res.status(500).json({ error: "Failed to download resume" });
+    res.status(500).json({ error: "Failed to download resume" });
+    return;
   }
 });
 
