@@ -37,6 +37,13 @@ const generateResumeTemplate = new PromptTemplate({
   Create the tailored resume in Markdown format with appropriate sections (Education, Experience, Skills, etc.).
   Focus on honesty while positioning the candidate's actual experience to best match the job requirements.
 
+  Instructions:
+  - Review the original resume and job description carefully.
+  - Identify key skills, experiences, and qualifications that match the job description.
+  - Use relevant keywords from the job description in the tailored resume.
+  - Ensure the tailored resume is well-organized and professional.
+  - The response should only include the tailored resume content in Markdown format.
+
   # Tailored Resume (in Markdown format):`,
   inputVariables: ['resume', 'jobDescription'],
 });
@@ -56,6 +63,12 @@ const refineResumeTemplate = new PromptTemplate({
   2. Ensuring all content is factually consistent with the original resume
   3. Addressing all points mentioned in the feedback
   4. Keeping the resume well-organized and formatted in Markdown
+
+  Instructions:
+  - Review the feedback carefully and make necessary changes to the resume.
+  - Focus on improving clarity, relevance, and impact of the resume content.
+  - The response should be a refined version of the original resume with the suggested changes.
+  - The response should only include the resume content in Markdown format.
 
   # Refined Resume (in Markdown format):`,
   inputVariables: ['resume', 'feedback'],
