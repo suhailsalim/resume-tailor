@@ -1,6 +1,6 @@
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { StringOutputParser } from "@langchain/core/dist/output_parsers";
+import { StringOutputParser } from "@langchain/core/output_parsers"
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -47,7 +47,7 @@ const upload = multer({
 });
 
 const llm = new ChatGoogleGenerativeAI({
-  modelName: "gemini-pro",
+  modelName: "gemini-2.0-flash",
   maxOutputTokens: 2048,
 });
 
