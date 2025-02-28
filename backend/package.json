@@ -4,9 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "nest start",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint --fix src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
