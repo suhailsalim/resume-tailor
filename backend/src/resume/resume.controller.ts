@@ -1,5 +1,6 @@
-import { Controller, Post, Body, UploadedFile, UseInterceptors, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UploadedFile, UseInterceptors, HttpException, HttpStatus, Res } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { ResumeService } from '../services/resumeService';
 
 @Controller('resume')
