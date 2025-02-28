@@ -10,7 +10,8 @@ const generateResume = async (req: Request, res: Response) => {
 
     const resumeText = await resumeService.parseResumeFile(
       req.file.buffer,
-      req.file.originalname
+      req.file.originalname,
+      req.file.mimetype
     );
     const jobDescription = req.body.jobDescription;
 

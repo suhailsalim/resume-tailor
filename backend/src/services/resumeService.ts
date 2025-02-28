@@ -4,8 +4,8 @@ import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { marked } from 'marked';
 import HTMLtoDOCX from "html-to-docx";
+import { marked } from 'marked';
 import config from '../config/config';
 
 const llm = new ChatGoogleGenerativeAI({
@@ -41,6 +41,8 @@ const generateResumeTemplate = new PromptTemplate({
   - Ensure the tailored resume is well-organized and professional.
   - The response should only include the tailored resume content in Markdown format.
 
+  MAKE SURE THE RESUME FOLLOWS THE INDUSTRY STANDARDS FOR FORMATTING AND IS WELL-TAILORED TO THE JOB DESCRIPTION.
+
   # Tailored Resume (in Markdown format):`,
   inputVariables: ['resume', 'jobDescription'],
 });
@@ -75,10 +77,10 @@ const resumeGenerator = RunnableSequence.from([generateResumeTemplate, llm, new 
 
 const resumeRefiner = RunnableSequence.from([refineResumeTemplate, llm, new StringOutputParser()]);
 
-async function parseResumeFile(fileBuffer: Buffer, filename: string): Promise<string> {
+async function parseResumeFile(fileBuffer: Buffer, filename: string, mimetype: string): Promise<string> {
   try {
     // convert buffer to blob
-    const blob = new Blob([fileBuffer], { type: 'application/octet-stream' });
+    const blob = new Blob([fileBuffer], { type: mimetype });
 
     let docs: any[] = [];
     if (filename.endsWith('.pdf')) {
