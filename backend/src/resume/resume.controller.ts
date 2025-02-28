@@ -2,15 +2,22 @@ import { Controller, Post, Body, UploadedFile, UseInterceptors, HttpException, H
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { ResumeService } from '../services/resumeService';
+import { GenerateResumeDto } from './dto/generate-resume.dto';
+import { RefineResumeDto } from './dto/refine-resume.dto';
+import { DownloadResumeDto } from './dto/download-resume.dto';
+import { ApiTags, ApiBody } from '@nestjs/swagger';
 
+@ApiTags('resume')
 @Controller('resume')
 export class ResumeController {
   constructor(private readonly resumeService: ResumeService) {}
 
   @Post('generate-resume')
   @UseInterceptors(FileInterceptor('resume'))
-  async generateResume(@UploadedFile() file: Express.Multer.File, @Body('jobDescription') jobDescription: string) {
+  @ApiBody({ type: GenerateResumeDto })
+  async generateResume(@UploadedFile() file: Express.Multer.File, @Body() generateResumeDto: GenerateResumeDto) {
     try {
+      const { jobDescription } = generateResumeDto;
       if (!file || !jobDescription) {
         throw new HttpException('Missing resume file or job description', HttpStatus.BAD_REQUEST);
       }
@@ -26,8 +33,10 @@ export class ResumeController {
   }
 
   @Post('refine-resume')
-  async refineResume(@Body('originalResume') originalResume: string, @Body('feedback') feedback: string) {
+  @ApiBody({ type: RefineResumeDto })
+  async refineResume(@Body() refineResumeDto: RefineResumeDto) {
     try {
+      const { originalResume, feedback } = refineResumeDto;
       if (!originalResume || !feedback) {
         throw new HttpException('Missing resume or feedback', HttpStatus.BAD_REQUEST);
       }
@@ -42,8 +51,10 @@ export class ResumeController {
   }
 
   @Post('download-resume')
-  async downloadResume(@Body('markdown') markdown: string, @Body('format') format: string, @Res() res: Response) {
+  @ApiBody({ type: DownloadResumeDto })
+  async downloadResume(@Body() downloadResumeDto: DownloadResumeDto, @Res() res: Response) {
     try {
+      const { markdown, format } = downloadResumeDto;
       if (!markdown || !format) {
         throw new HttpException('Missing markdown content or format', HttpStatus.BAD_REQUEST);
       }
