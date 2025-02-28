@@ -4,12 +4,9 @@ import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import fs from 'fs/promises';
 import { marked } from 'marked';
-import os from 'os';
-import path from 'path';
-import puppeteer from 'puppeteer';
-import config from '../config/config'; // Import config
+import HTMLtoDOCX from "html-to-docx";
+import config from '../config/config';
 
 const llm = new ChatGoogleGenerativeAI({
   modelName: 'gemini-2.0-flash',
@@ -80,22 +77,17 @@ const resumeRefiner = RunnableSequence.from([refineResumeTemplate, llm, new Stri
 
 async function parseResumeFile(fileBuffer: Buffer, filename: string): Promise<string> {
   try {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'resume-'));
-    const tempFilePath = path.join(tempDir, filename);
-
-    await fs.writeFile(tempFilePath, fileBuffer);
+    // convert buffer to blob
+    const blob = new Blob([fileBuffer], { type: 'application/octet-stream' });
 
     let docs: any[] = [];
     if (filename.endsWith('.pdf')) {
-      const loader = new PDFLoader(tempFilePath);
+      const loader = new PDFLoader(blob);
       docs = await loader.load();
     } else if (filename.endsWith('.docx') || filename.endsWith('.doc')) {
-      const loader = new DocxLoader(tempFilePath);
+      const loader = new DocxLoader(blob);
       docs = await loader.load();
     }
-
-    // Clean up temp files
-    await Promise.all([fs.unlink(tempFilePath), fs.rmdir(tempDir)]);
 
     // Combine all documents into one text
     const fullText = docs.map((doc) => doc.pageContent).join('\n\n');
@@ -142,103 +134,26 @@ async function refineTailoredResume(originalResume: string, feedback: string): P
   }
 }
 
-async function generateResumeDownload(markdown: string, format: string): Promise<Buffer | string> {
+async function generateResumeDownload(text: string, format: string): Promise<Buffer | string> {
   if (format === 'markdown') {
-    return markdown; // Return markdown text directly
+    return text; // Return markdown text directly
   }
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Tailored Resume</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
-          margin: 40px;
-          max-width: 800px;
-        }
-        h1, h2, h3 {
-          color: #333;
-        }
-        h1 {
-          border-bottom: 1px solid #ddd;
-          padding-bottom: 10px;
-        }
-        h2 {
-          margin-top: 20px;
-          border-bottom: 1px solid #eee;
-          padding-bottom: 5px;
-        }
-        ul {
-          margin-top: 5px;
-        }
-        a {
-          color: #0366d6;
-          text-decoration: none;
-        }
-        p {
-          margin: 5px 0;
-        }
-      </style>
-    </head>
-    <body>
-      ${marked(markdown)}
-    </body>
-    </html>
-  `;
-
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
+  const html = await marked(text);
 
   if (format === 'pdf') {
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      margin: { top: '40px', right: '40px', bottom: '40px', left: '40px' },
-      printBackground: true,
-    });
-    await browser.close();
-    return Buffer.from(pdfBuffer);
+    return Buffer.from(html);
   } else if (format === 'doc') {
-    const docHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office"
-        xmlns:w="urn:schemas-microsoft-com:office:word"
-        xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8">
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-            <w:DoNotOptimizeForBrowser/>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          body {
-            font-family: Calibri, Arial, sans-serif;
-            margin: 1cm 2cm;
-            font-size: 11pt;
-          }
-          h1, h2, h3 { font-family: Calibri, Arial, sans-serif; }
-          h1 { font-size:
-            18pt; }
-          h2 { font-size: 14pt; }
-          p, li { font-size: 11pt; line-height: 1.5; }
-        </style>
-      </head>
-      <body>
-        ${marked(markdown)}
-      </body>
-      </html>
-    `;
-    await browser.close();
-    return Buffer.from(docHtml);
+    const response = await HTMLtoDOCX(html, null, {
+      title: 'Resume'
+    });
+    if (response instanceof ArrayBuffer) {
+      return Buffer.from(response);
+    } else if (Buffer.isBuffer(response)) {
+      return response;
+    } else {
+      throw new Error('Failed to generate DOCX file');
+    }
   } else {
     throw new Error('Invalid format specified');
   }
