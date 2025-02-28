@@ -1,7 +1,15 @@
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import FeedbackIcon from "@mui/icons-material/Feedback"; // Feedback Icon
+import FeedbackIcon from "@mui/icons-material/Feedback";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import VisibilityIcon from "@mui/icons-material/Visibility"; // Preview Icon
+import FormatBoldIcon from "@mui/icons-material/FormatBold";
+import FormatItalicIcon from "@mui/icons-material/FormatItalic";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered'; // Numbered List Icon
+import FormatColorTextIcon from '@mui/icons-material/FormatColorText'; // Text Color Icon
+import H1Icon from '@mui/icons-material/OneKkOutlined'; // H1 Icon
+import H2Icon from '@mui/icons-material/TwoK'; // H2 Icon
+import H3Icon from '@mui/icons-material/ThreeK'; // H3 Icon
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Alert,
   Box,
@@ -10,6 +18,7 @@ import {
   Container,
   FormControlLabel,
   Grid,
+  IconButton,
   Paper,
   Snackbar,
   Step,
@@ -19,13 +28,21 @@ import {
   Switch,
   TextField,
   Typography,
+  Menu, // Import Menu and MenuItem for Heading dropdown
+  MenuItem,
 } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
-import StepConnector from "@mui/material/StepConnector"; // Stepper Connector
+import StepConnector from "@mui/material/StepConnector";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { Color } from "@tiptap/extension-color";
+import ListItem from "@tiptap/extension-list-item";
+import TextStyle from "@tiptap/extension-text-style";
+import Heading from '@tiptap/extension-heading'; // Import Heading Extension
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import axios from "axios";
-import MarkdownPreview from "markdown-to-jsx";
-import { useEffect, useState } from "react";
+import { marked } from "marked";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 
 // Custom Stepper connector style
@@ -65,11 +82,46 @@ const App = () => {
   });
 
   const steps = ["Upload Resume", "Job Description", "Edit & Download"];
+  const [headingAnchorEl, setHeadingAnchorEl] = useState<null | HTMLElement>(null);
+  const isHeadingMenuOpen = Boolean(headingAnchorEl);
+
+  const editor = useEditor({
+    extensions: [
+      Color.configure({ types: [TextStyle.name, ListItem.name, Heading.name] }), // Add Heading to Color types
+      TextStyle,
+      Heading, // Add Heading Extension
+      StarterKit.configure({
+        bulletList: { keepMarks: true, keepAttributes: false },
+        orderedList: { keepMarks: true, keepAttributes: false },
+      }),
+    ],
+    immediatelyRender: true,
+    content: editedResume,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      handleEditedResumeChange(html);
+    },
+  });
+
+  // Initialize editor content when editedResume changes
+  useEffect(() => {
+    if (editor) {
+      editor.commands.setContent(editedResume);
+    }
+  }, [editedResume, editor]);
 
   // Initialize editedResume with generatedResume when it changes
   useEffect(() => {
     if (generatedResume) {
-      setEditedResume(generatedResume);
+      // convert markdown to html
+      const html = marked.parse(generatedResume);
+      if (typeof html === "string") {
+        setEditedResume(html);
+      } else {
+        html.then((data) => {
+          setEditedResume(data);
+        });
+      }
     }
   }, [generatedResume]);
 
@@ -114,9 +166,13 @@ const App = () => {
     setJobDescription(event.target.value);
   };
 
-  const handleEditedResumeChange = (event: any) => {
-    setEditedResume(event.target.value);
-  };
+  const handleEditedResumeChange = useCallback(
+    (htmlContent: string) => {
+      // useCallback for memoization
+      setEditedResume(htmlContent); // Value from TipTap is HTML
+    },
+    [setEditedResume]
+  );
 
   const handleFeedbackChange = (event: any) => {
     setFeedback(event.target.value);
@@ -312,6 +368,19 @@ const App = () => {
     setStep((prevStep) => Math.max(prevStep - 1, 1));
   };
 
+  // Heading Menu Handlers
+  const handleHeadingMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setHeadingAnchorEl(event.currentTarget);
+  };
+  const handleHeadingMenuClose = () => {
+    setHeadingAnchorEl(null);
+  };
+  const handleToggleHeading = (level: 1 | 2 | 3) => {
+    editor?.chain().focus().toggleHeading({ level: level }).run();
+    handleHeadingMenuClose();
+  };
+
+
   const renderStepContent = () => {
     switch (step) {
       case 1: // Step 1: Upload Resume
@@ -398,7 +467,7 @@ const App = () => {
             </Box>
           </Paper>
         );
-      case 3: // Step 3: Edit and Preview
+      case 3: // Step 3: Edit and Download
         return (
           <Paper elevation={3} sx={{ p: 3, my: 2 }}>
             <Typography
@@ -413,45 +482,51 @@ const App = () => {
               format.
             </Typography>
             {generatedResume ? (
-              <Box
-                sx={{
-                  flexGrow: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
+              <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                {/* TipTap Toolbar */}
+                <Paper elevation={1} sx={{ p: 0.5, mb: 1, display: 'flex', gap: 0.5, alignItems: 'center', bgcolor: darkMode ? 'grey[900]' : 'grey[100]' }}>
+
+                  {/* Heading Menu Button */}
+                  <Button onClick={handleHeadingMenuOpen} endIcon={<Typography variant="h6">H</Typography>} size="small" sx={{ textTransform: 'none' }}>
+                    Heading
+                  </Button>
+                  <Menu
+                    anchorEl={headingAnchorEl}
+                    open={isHeadingMenuOpen}
+                    onClose={handleHeadingMenuClose}
+                >
+                    <MenuItem onClick={() => handleToggleHeading(1)}><H1Icon sx={{ mr: 1 }} />Heading 1</MenuItem>
+                    <MenuItem onClick={() => handleToggleHeading(2)}><H2Icon sx={{ mr: 1 }} />Heading 2</MenuItem>
+                    <MenuItem onClick={() => handleToggleHeading(3)}><H3Icon sx={{ mr: 1 }} />Heading 3</MenuItem>
+                  </Menu>
+
+                  <IconButton onClick={() => editor?.chain().focus().toggleBold().run()} disabled={!editor} aria-label="bold">
+                    <FormatBoldIcon />
+                  </IconButton>
+                  <IconButton onClick={() => editor?.chain().focus().toggleItalic().run()} disabled={!editor} aria-label="italic">
+                    <FormatItalicIcon />
+                  </IconButton>
+                  <IconButton onClick={() => editor?.chain().focus().toggleBulletList().run()} disabled={!editor} aria-label="bullet list">
+                    <FormatListBulletedIcon />
+                  </IconButton>
+                  <IconButton onClick={() => editor?.chain().focus().toggleOrderedList().run()} disabled={!editor} aria-label="numbered list">
+                    <FormatListNumberedIcon />
+                  </IconButton>
+                  <IconButton onClick={() => editor?.chain().focus().extendMarkRange('textColor').setColor('#000').run()} disabled={!editor} aria-label="text color">
+                    <FormatColorTextIcon />
+                  </IconButton>
+                  {/* Add more toolbar buttons here as needed */}
+                </Paper>
+
+                {/* Grid for Editor and Preview (remains same) */}
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6} sx={{ pr: { md: 2 } }}>
-                    {" "}
-                    {/* Added padding right for visual separation on md screens */}
-                    <TextField
-                      label="Edit Resume (Markdown)"
-                      multiline
-                      fullWidth
-                      rows={21} // Increased rows for better edit area
-                      value={editedResume}
-                      onChange={handleEditedResumeChange}
-                      variant="outlined"
-                      sx={{ mb: 2 }}
-                    />
+                    <Paper elevation={1} sx={{ p: 1, overflow: 'hidden', border: '1px solid rgba(0, 0, 0, 0.23)' }}>
+                      <EditorContent editor={editor} style={{ minHeight: "450px" }} />
+                    </Paper>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Paper
-                      elevation={1}
-                      sx={{
-                        p: 2,
-                        mb: 3,
-                        maxHeight: "515px", // Increased maxHeight for preview
-                        overflow: "auto",
-                        bgcolor: darkMode
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.02)",
-                        wordWrap: "break-word",
-                        overflowWrap: "break-word",
-                      }}
-                    >
-                      <MarkdownPreview>{editedResume}</MarkdownPreview>
-                    </Paper>
+                    <Paper elevation={1} sx={{ p: 2, mb: 3, minHeight: "500px", overflow: "auto", bgcolor: darkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)", wordWrap: "break-word", overflowWrap: "break-word" }} dangerouslySetInnerHTML={{ __html: editedResume }} />
                   </Grid>
                 </Grid>
 
