@@ -8,6 +8,8 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import HTMLtoDOCX from "html-to-docx";
 import { marked } from 'marked';
 import { ConfigService } from '@nestjs/config';
+import * as mammoth from 'mammoth';
+import * as pdfParse from 'pdf-parse';
 
 @Injectable()
 export class ResumeService {
@@ -84,19 +86,15 @@ export class ResumeService {
 
   async parseResumeFile(fileBuffer: Buffer, filename: string, mimetype: string): Promise<string> {
     try {
-      const blob = new Blob([fileBuffer], { type: mimetype });
-
-      let docs: any[] = [];
       if (filename.endsWith('.pdf')) {
-        const loader = new PDFLoader(blob);
-        docs = await loader.load();
+        const data = await pdfParse(fileBuffer);
+        return data.text;
       } else if (filename.endsWith('.docx') || filename.endsWith('.doc')) {
-        const loader = new DocxLoader(blob);
-        docs = await loader.load();
+        const result = await mammoth.extractRawText({ buffer: fileBuffer });
+        return result.value;
+      } else {
+        throw new Error('Unsupported file format');
       }
-
-      const fullText = docs.map((doc) => doc.pageContent).join('\n\n');
-      return fullText;
     } catch (error) {
       console.error('Error parsing resume file:', error);
       throw new Error('Failed to parse resume file');
@@ -140,9 +138,11 @@ export class ResumeService {
       return text;
     }
 
-    const html = await marked(text);
+    const html = marked(text);
 
     if (format === 'pdf') {
+      // Convert HTML to PDF using a library like Puppeteer or pdf-lib
+      // Placeholder for actual PDF conversion logic
       return Buffer.from(html);
     } else if (format === 'doc') {
       const response = await HTMLtoDOCX(html, null, {
