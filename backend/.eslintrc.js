@@ -13,8 +13,9 @@ module.exports = {
     'plugin:node/recommended', // Recommended rules for Node.js
     'prettier', // Enables eslint-config-prettier. Make sure this is **last** in the extends array.
     'plugin:prettier/recommended', // Enables eslint-plugin-prettier and displays Prettier errors as ESLint errors. Make sure this is **last** in the extends array.
+    'plugin:@nrwl/nx/recommended', // Nx recommended rules
   ],
-  plugins: ['@typescript-eslint', 'import', 'node', 'prettier'],
+  plugins: ['@typescript-eslint', 'import', 'node', 'prettier', '@nrwl/nx'],
   rules: {
     // Customize rules here
     'no-unused-vars': 'warn', // or 'error'
@@ -31,5 +32,6 @@ module.exports = {
     'import/resolver': {
       typescript: {}, // tells eslint-plugin-import to use TypeScript's compiler for resolving imports
     },
+    nx: {}, // Nx settings
   },
 };
