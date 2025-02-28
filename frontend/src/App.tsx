@@ -198,7 +198,7 @@ const App = () => {
     formData.append("jobDescription", jobDescription);
 
     try {
-      const response = await axios.post("/api/generate-resume", formData, {
+      const response = await axios.post("/resume/generate-resume", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -243,7 +243,7 @@ const App = () => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("/api/refine-resume", {
+      const response = await axios.post("/resume/refine-resume", {
         originalResume: editedResume,
         feedback,
       });
@@ -277,7 +277,7 @@ const App = () => {
   const downloadResume = async (format: string) => {
     try {
       const response = await axios.post(
-        "/api/download-resume",
+        "/resume/download-resume",
         {
           markdown: editedResume,
           format,
